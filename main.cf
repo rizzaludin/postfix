@@ -1,0 +1,77 @@
+# Konfigurasi TLS untuk SMTP server
+smtpd_tls_cert_file = /etc/letsencrypt/live/example.com/fullchain.pem
+smtpd_tls_key_file = /etc/letsencrypt/live/example.com/privkey.pem
+
+# Aktifkan TLS untuk SMTP server dan klien
+smtpd_tls_security_level = may
+smtp_tls_security_level = encrypt
+
+# Atur protokol dan cipher untuk TLS
+smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_ciphers = high
+smtpd_tls_mandatory_ciphers = high
+
+smtpd_use_tls = yes
+smtp_use_tls = yes
+
+# Haruskan otentikasi melalui TLS
+smtpd_tls_auth_only = yes
+
+# Tambahkan header TLS pada email yang diterima
+smtpd_tls_received_header = yes
+smtpd_tls_loglevel = 2
+smtp_tls_loglevel = 1
+
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+# Konfigurasi SMTP dasar
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $myhostname
+
+# --- Pembatasan Hello Access ---
+smtpd_helo_required = yes
+smtpd_helo_restrictions =
+        permit_mynetworks,
+        permit_sasl_authenticated,
+        reject_invalid_helo_hostname,
+        reject_non_fqdn_helo_hostname,
+        reject_unknown_helo_hostname,
+        check_helo_access hash:/etc/postfix/helo_access
+
+smtpd_recipient_restrictions =
+    check_policy_service inet:127.0.0.1:10031,
+    permit_sasl_authenticated,
+    permit_mynetworks,
+    reject_unauth_destination
+
+# Nonaktifkan TLS untuk klien yang buruk
+broken_sasl_auth_clients = yes
+
+# Setel konfigurasi dasar lainnya
+maillog_file = /var/log/mail.log
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+mydestination = example.com, $myhostname, localhost.$mydomain, localhost
+myhostname = example.com
+mydomain = example.com
+myorigin = $mydomain
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+relay_domains = $mydestination, example.com
+mynetworks = 127.0.0.0/8, localhost, [::1]/128
+inet_interfaces = all
+recipient_delimiter = +
+home_mailbox = Maildir/
+mailbox_command =
+virtual_transport = lmtp:unix:private/dovecot-lmtp
+mailbox_size_limit = 0
+inet_protocols = all
+compatibility_level = 2
+
+# SPF POLICY
+policyd-spf_time_limit = 3600s
+
